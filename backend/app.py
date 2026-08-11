@@ -3,6 +3,8 @@ from typing import Literal
 from fastapi import FastAPI, status
 from pydantic import BaseModel, Field
 
+from backend.risk_service import FailureRiskAssessmentService
+
 
 app = FastAPI(
     title="VoltEdge Mobility API",
@@ -33,7 +35,16 @@ def health_check():
 
 @app.post("/api/telemetry", status_code=status.HTTP_201_CREATED)
 def receive_telemetry(telemetry: TelemetryReading):
+    risk_assessment = FailureRiskAssessmentService.calculate_risk(
+        charger_status=telemetry.status,
+        temperature=telemetry.temperature,
+        voltage=telemetry.voltage,
+        error_count=telemetry.error_count,
+        heartbeat_missing=telemetry.heartbeat_missing,
+    )
+
     return {
         "message": "Telemetry accepted",
         "data": telemetry,
+        "risk_assessment": risk_assessment,
     }
