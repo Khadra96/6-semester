@@ -12,6 +12,7 @@ from backend.risk_service import FailureRiskAssessmentService
 
 Base.metadata.create_all(bind=engine)
 
+
 app = FastAPI(
     title="VoltEdge Mobility API",
     description="API til overvågning af ladestandere og telemetridata",
@@ -70,3 +71,24 @@ def receive_telemetry(
         "risk_assessment": risk_assessment,
         "database_records": database_records,
     }
+
+
+@app.get("/api/telemetry")
+def get_telemetry(
+    database: Session = Depends(get_database_session),
+):
+    return TelemetryRepository.get_recent_telemetry(database)
+
+
+@app.get("/api/risk-assessments")
+def get_risk_assessments(
+    database: Session = Depends(get_database_session),
+):
+    return TelemetryRepository.get_risk_assessments(database)
+
+
+@app.get("/api/incidents")
+def get_open_incidents(
+    database: Session = Depends(get_database_session),
+):
+    return TelemetryRepository.get_open_incidents(database)
