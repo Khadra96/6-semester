@@ -1,13 +1,17 @@
-from flask import Flask, jsonify
+from fastapi import FastAPI
 
-app = Flask(__name__)
+app = FastAPI(
+    title="VoltEdge Mobility API",
+    description="API til overvågning af ladestandere og telemetridata",
+    version="1.0.0",
+)
 
-@app.route("/")
+
+@app.get("/")
 def home():
-    return jsonify({
-        "message": "VoltEdge API is running"
-    })
+    return {"message": "VoltEdge API is running"}
 
-if __name__ == "__main__":
-    app.run(debug=True)
-    
+
+@app.get("/health")
+def health_check():
+    return {"status": "healthy"}
