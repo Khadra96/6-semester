@@ -1,10 +1,16 @@
 from typing import Literal
 
-from fastapi import FastAPI, status
+from fastapi import Depends, FastAPI, HTTPException, status
 from pydantic import BaseModel, Field
+from sqlalchemy.orm import Session
 
+from backend import models
+from backend.database import Base, engine, get_database_session
+from backend.repository import TelemetryRepository
 from backend.risk_service import FailureRiskAssessmentService
 
+
+Base.metadata.create_all(bind=engine)
 
 app = FastAPI(
     title="VoltEdge Mobility API",
@@ -34,7 +40,10 @@ def health_check():
 
 
 @app.post("/api/telemetry", status_code=status.HTTP_201_CREATED)
-def receive_telemetry(telemetry: TelemetryReading):
+def receive_telemetry(
+    telemetry: TelemetryReading,
+    database: Session = Depends(get_database_session),
+):
     risk_assessment = FailureRiskAssessmentService.calculate_risk(
         charger_status=telemetry.status,
         temperature=telemetry.temperature,
@@ -43,8 +52,21 @@ def receive_telemetry(telemetry: TelemetryReading):
         heartbeat_missing=telemetry.heartbeat_missing,
     )
 
+    try:
+        database_records = TelemetryRepository.save_telemetry_flow(
+            database=database,
+            telemetry=telemetry,
+            risk_assessment=risk_assessment,
+        )
+    except Exception as error:
+        raise HTTPException(
+            status_code=500,
+            detail="Data could not be saved in the database",
+        ) from error
+
     return {
-        "message": "Telemetry accepted",
+        "message": "Telemetry accepted and saved",
         "data": telemetry,
         "risk_assessment": risk_assessment,
+        "database_records": database_records,
     }

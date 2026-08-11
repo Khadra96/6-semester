@@ -6,7 +6,7 @@ from backend.app import app
 client = TestClient(app)
 
 
-def test_valid_telemetry_is_accepted():
+def test_valid_telemetry_is_accepted_and_saved():
     response = client.post(
         "/api/telemetry",
         json={
@@ -24,9 +24,12 @@ def test_valid_telemetry_is_accepted():
 
     result = response.json()
 
-    assert result["message"] == "Telemetry accepted"
+    assert result["message"] == "Telemetry accepted and saved"
     assert result["risk_assessment"]["risk_level"] == "High"
     assert result["risk_assessment"]["incident_created"] is True
+    assert result["database_records"]["telemetry_id"] is not None
+    assert result["database_records"]["risk_assessment_id"] is not None
+    assert result["database_records"]["incident_id"] is not None
 
 
 def test_invalid_temperature_is_rejected():
