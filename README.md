@@ -1,105 +1,35 @@
 # VoltEdge Mobility
 
-Dette repository indeholder vores MVP til VoltEdge Mobility. Projektet er udviklet som en del af eksamen på 6. semester.
+Dette projekt er udviklet i forbindelse med vores eksamen på 6. semester. Formålet har været at udvikle en MVP, som kan hjælpe VoltEdge Mobility med at opdage mulige fejl på virksomhedens ladestandere.
 
-VoltEdge arbejder med ladestandere fra forskellige leverandører. En af udfordringerne er, at fejl kan være svære at opdage, før en ladestander allerede er ude af drift. Derfor har vi lavet en løsning, som modtager telemetridata og vurderer, hvor stor risiko der er for en fejl.
+Løsningen modtager telemetridata fra ladestanderne og vurderer risikoen for fejl ud fra blandt andet status, temperatur, spænding, antal fejl og manglende heartbeat. Hvis risikoniveauet er højt, bliver der automatisk oprettet et incident.
 
-Hvis risikoen er høj, opretter systemet automatisk et incident, så VoltEdge kan reagere hurtigere.
+## Løsningens dataflow
 
-### Sådan fungerer løsningen
+Når API’et modtager en telemetrimåling, bliver dataene først valideret. Herefter beregnes en risikoscore, og resultatet gemmes sammen med telemetridataene i PostgreSQL.
 
-Når API’et modtager telemetridata fra en ladestander, sker der følgende:
+Ved høj risiko oprettes der automatisk et incident. De gemte oplysninger kan efterfølgende hentes gennem API’et.
 
-1. Dataene bliver valideret.
-2. Systemet beregner en risikoscore.
-3. Telemetridata og risikovurderingen gemmes i PostgreSQL.
-4. Hvis risikoen er høj, oprettes der automatisk et incident.
-5. De gemte data kan hentes gennem API’et og senere bruges i eksempelvis Power BI.
+Projektet indeholder desuden et datasæt til Power BI. Dashboardet viser blandt andet temperaturudvikling, ladestandernes status, risikoniveauer og antal incidents.
 
-Risikovurderingen tager blandt andet højde for:
+I denne MVP beregnes risikoen med faste regler. Det gør beregningen let at følge og gør det muligt at afprøve hele dataflowet. En senere version kan anvende en trænet machine learning-model.
 
-- ladestanderens status
-- temperatur
-- spænding
-- antal registrerede fejl
-- manglende heartbeat
+## Teknologier
 
-I vores MVP bruger vi faste og gennemsigtige regler til at beregne risikoen. Det gør det muligt at demonstrere hele dataflowet. Senere kan denne del udvides med en machine learning-model.
-
-### Teknologier
-
-Vi har anvendt:
+Projektet anvender:
 
 - Python og FastAPI til API’et
-- Pydantic til validering af data
-- PostgreSQL til lagring
+- Pydantic til validering af telemetridata
+- PostgreSQL til lagring af data
 - SQLAlchemy til kommunikationen med databasen
 - Docker Compose til at starte databasen
-- Pytest til automatiserede tests
-- GitHub Actions til automatisk test ved push
+- Pytest til test af løsningen
+- GitHub Actions til automatisk at køre testene ved push
+- Power BI til visualisering af data
 
-### API
+## API
 
-API-dokumentationen kan ses gennem Swagger på:
+API-dokumentationen kan åbnes gennem Swagger:
 
 ```text
 http://127.0.0.1:8000/docs
-```
-
-API’et indeholder følgende endpoints:
-
-| Metode | Endpoint | Funktion |
-|---|---|---|
-| GET | `/` | Viser om API’et kører |
-| GET | `/health` | Kontrollerer systemets status |
-| POST | `/api/telemetry` | Modtager nye telemetridata |
-| GET | `/api/telemetry` | Henter gemte telemetridata |
-| GET | `/api/risk-assessments` | Henter risikovurderinger |
-| GET | `/api/incidents` | Henter åbne incidents |
-
-### Sådan startes projektet
-
-PostgreSQL-databasen startes med:
-
-```powershell
-docker compose up -d database
-```
-
-Python-pakkerne installeres med:
-
-```powershell
-python -m pip install -r backend/requirements.txt
-```
-
-API’et startes med:
-
-```powershell
-python -m uvicorn backend.app:app --reload
-```
-
-Derefter kan Swagger åbnes på `http://127.0.0.1:8000/docs`.
-
-### Tests
-
-Testene køres med:
-
-```powershell
-python -m pytest -v
-```
-
-Vi tester blandt andet:
-
-- at gyldige telemetridata accepteres
-- at ugyldige temperaturer afvises
-- at en lav risiko ikke opretter et incident
-- at en høj risiko opretter et incident
-
-GitHub Actions kører automatisk testene, når ny kode pushes til GitHub. Det gør det lettere for os at opdage fejl under udviklingen.
-
-### Sikkerhed
-
-Databaseoplysningerne ligger lokalt i `.env` og bliver ikke uploadet til GitHub. `.env.example` viser, hvilke oplysninger der skal udfyldes, uden at indeholde det rigtige password.
-
-### Næste udviklingstrin
-
-MVP’en viser det grundlæggende dataflow fra ladestander til risikovurdering og incident. Næste trin kan være at koble dataene til Power BI og senere erstatte de faste risikoregler med en trænet machine learning-model.
